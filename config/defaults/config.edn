@@ -1,0 +1,3 @@
+{
+ ;;where tools are installed. Make sure this is an absolute path.
+ :bluegenes-tool-path "/home/regen/prog/bluegenes-tool-store/tools/node_modules"}
