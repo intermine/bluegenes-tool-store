@@ -1,3 +1,5 @@
+[![Clojars Project](https://img.shields.io/clojars/v/org.intermine/bluegenes-tool-store.svg)](https://clojars.org/org.intermine/bluegenes-tool-store)
+
 # BlueGenes Tool Store
 
 ## Development server
