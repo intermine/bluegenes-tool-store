@@ -1,17 +1,17 @@
-(defproject org.intermine/bluegenes-tool-store "0.0.1-SNAPSHOT"
+(defproject org.intermine/bluegenes-tool-store "0.1.0"
   :licence "LGPL-2.1-only"
   :description "Microservice which serves tools for use with BlueGene's Tool API"
   :url "http://www.intermine.org"
   :dependencies [; Clojure
-                 [org.clojure/clojure "1.9.0"]
+                 [org.clojure/clojure "1.10.1"]
 
                  ; HTTP
-                 [clj-http "3.7.0"]
-                 [compojure "1.6.0"]
+                 [clj-http "3.10.0"]
+                 [compojure "1.6.1"]
                  [ring "1.7.1"]
                  [ring/ring-defaults "0.3.2"]
                  [ring/ring-json "0.4.0" :exclusions [cheshire.core]]
-                 [cheshire "5.8.0"]
+                 [cheshire "5.8.1"]
                  [metosin/ring-http-response "0.9.1"]
                  [ring-middleware-format "0.7.4"]
 
@@ -20,11 +20,11 @@
 
                  ; Logging
                  [com.taoensso/timbre "4.10.0"]
-                 [com.fzakaria/slf4j-timbre "0.3.7"]]
+                 [com.fzakaria/slf4j-timbre "0.3.14"]]
 
   :deploy-repositories {"clojars" {:sign-releases false}}
   :plugins [[lein-codox "0.10.5"]
-            [lein-ancient "0.6.14"]
+            [lein-ancient "0.6.15"]
             [lein-pdo "0.1.1"]
             [lein-cljfmt "0.6.1"]]
 
