@@ -7,36 +7,44 @@
             [clojure.pprint :refer [pprint]]
             [ring.util.http-response :as response]
             [clojure.java.io :as io]
-            [taoensso.timbre :as timbre :refer [log warn]]))
+            [taoensso.timbre :as timbre :refer [log warn]]
+            [clojure.java.shell :refer [sh with-sh-dir]])
+  (:import [java.util.concurrent.locks ReentrantLock]))
 
-(def tool-path
-  "appends slash to the path if not present"
-  (if-let [the-tools (:bluegenes-tool-path env)]
-    (if (ends-with? the-tools "/")
-      the-tools
-      (str the-tools "/"))
-    (warn "No BlueGenes tool path found")))
+(def tools-path
+  "Returns the absolute path for the target tool path. We use memoize to cache
+  it like a map since config values can't change during runtime. You can
+  specify `:file true` to receive the java.io.File object instead."
+  (memoize
+    (fn [target & {:keys [file]}]
+      (let [f (io/file (:bluegenes-tool-path env))]
+        (when-not f
+          (warn "Missing bluegenes-tool-path config variable."))
+        (cond-> (case target
+                  ;; node_modules directory containing the tools.
+                  :modules f
+                  ;; package.json in tools directory.
+                  :config  (-> f .getParentFile (io/file "package.json"))
+                  ;; tools directory itself.
+                  :tools   (.getParentFile f))
+          (not file) .getAbsolutePath)))))
 
-(def tools-config (str tool-path "../package.json"))
-
-(defn get-tool-config
+(defn tool-config
   "check tool folder for config and other relevant files and return as
    a map of useful info. This is used client-side by the browser to
    load tools relevant for a given report page."
   [tool path]
   (let [tool-name (subs (str tool) 1)
-        debug (log :info "|---- tool:" tool)
-        path (join "/" [path tool-name])
+        path (io/file path tool-name)
         ;; this is the bluegenes-specific config.
-        bluegenes-config-path (str path "/config.json")
-        debuggg (log :info "|------ config path:" bluegenes-config-path)
+        bluegenes-config-path (io/file path "config.json")
         config (cheshire/parse-string (slurp bluegenes-config-path) true)
         ;;this is the default npm package file
-        package-path (str path "/package.json")
+        package-path (io/file path "package.json")
         package (cheshire/parse-string (slurp package-path) true)
         ;;optional preview image for each tool.
-        preview-image "/preview.png"
-        browser-path (str "/tools/" tool-name preview-image)]
+        preview-image "preview.png"
+        browser-path (.getAbsolutePath (io/file "/tools" tool-name preview-image))]
     ;; so many naming rules that conflict - we need three names.
     ;; npm requires kebab-case bluegenes-tool-protvista
     ;; but js vars forbid kebab case bluegenesToolProtvista
@@ -46,33 +54,76 @@
              :cljs (get-in config [:toolName :cljs])
              :npm (get-in package [:name])}
      :config config
-     :package package
+     :package (select-keys package [:description :license :homepage :name :author :version])
       ;; return image path if it exists, or false otherwise.
-     :hasimage (if (.exists (io/file (str path preview-image)))
+     :hasimage (if (.exists (io/file path preview-image))
                  browser-path
                  false)}))
+
+;; A valid tool needs to have the following:
+;; - package.json
+;; - config.json
+;; - dist/bundle.js
 
 (defn installed-tools-list
   "Return a list of the installed tools listed in the package.json file. "
   []
-  (try
-    (log :info "|-- looking for tool config file at: " tools-config)
-    (let [packages (cheshire/parse-string (slurp tools-config) true)
-          package-names (keys (:dependencies packages))]
-      package-names)
-    (catch Exception e (log :warn
-                            (str "Couldn't find tools at " tools-config (.getMessage e) "- please run `npm init -y` in the tools directory and install your tools again.")))))
+  (let [config-path (tools-path :config)]
+    (try
+     (let [packages (cheshire/parse-string (slurp config-path) true)
+           package-names (keys (:dependencies packages))]
+       package-names)
+     (catch Exception e
+            (log :warn
+                 (str "Couldn't find tools at " config-path (.getMessage e) "- please run `npm init -y` in the tools directory and install your tools again."))))))
 
-(defn tools
+(defn get-all-tools
   "Format the list of tools as a REST response to our GET."
   []
-  (log :info "Tools folder: ")
-  (log :info "|--" tool-path)
-  (let [installed-tools (installed-tools-list)
-        res
-        {:tools
-         (reduce
-          (fn [tool-list newitem]
-            (conj tool-list (get-tool-config newitem tool-path)))
-          #{} installed-tools)}]
-    (response/ok res)))
+  (let [modules-path (tools-path :modules)]
+    (response/ok
+      {:tools (map #(tool-config % modules-path)
+                   (installed-tools-list))})))
+
+(defn get-tools-path
+  "Respond with tool path."
+  []
+  (response/ok (:bluegenes-tool-path env)))
+
+(let [lock (ReentrantLock.)]
+  (defn sync-sh-req
+    "Run a synchronous shell command, rejecting in the case where a command
+    is already in progress. This is mostly for wrapping calls to npm, which
+    only allows a single process at a time."
+    [cmdv dir]
+    (if (.tryLock lock)
+      (try
+        (response/ok
+          (with-sh-dir dir
+            (apply sh cmdv)))
+        (finally
+          (.unlock lock)))
+      (response/service-unavailable "Shell is already working. Please try again later."))))
+
+(defn install-package
+  "Call on NPM through the shell to install one or more packages, updating package.json."
+  [{{:keys [package packages]} :params}]
+  (cond
+    package  (sync-sh-req ["npm" "install" "--save" package] (tools-path :tools))
+    packages (sync-sh-req (into ["npm" "install" "--save"] packages)
+                          (tools-path :tools))))
+
+(defn uninstall-package
+  "Call on NPM through the shell to uninstall a package, updating package.json."
+  [{{:keys [package]} :params}]
+  (sync-sh-req ["npm" "uninstall" "--save" package] (tools-path :tools)))
+
+(defn update-packages
+  "Call on NPM through the shell to update to the latest versions of the
+  specified packages, which is passed as a vector of strings. Using
+  `npm update` only updates the minor and patch versions, so we need to use
+  `npm install` and specify the package names explicitly with `@latest` added
+  to their name."
+  [{{:keys [packages]} :params}]
+  (let [to-update (map #(str % "@latest") packages)]
+    (sync-sh-req (into ["npm" "install" "--save"] to-update) (tools-path :tools))))
