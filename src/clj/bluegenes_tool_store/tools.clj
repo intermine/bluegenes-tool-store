@@ -77,13 +77,18 @@
             (log :warn
                  (str "Couldn't find tools at " config-path (.getMessage e) "- please run `npm init -y` in the tools directory and install your tools again."))))))
 
-(defn get-all-tools
-  "Format the list of tools as a REST response to our GET."
+(defn tools-list-res
+  "Create response containing the list of tools."
   []
   (let [modules-path (tools-path :modules)]
     (response/ok
       {:tools (map #(tool-config % modules-path)
                    (installed-tools-list))})))
+
+(defn get-all-tools
+  "Return list of tools as a REST response to our GET."
+  []
+  (tools-list-res))
 
 (defn get-tools-path
   "Respond with tool path."
@@ -94,13 +99,14 @@
   (defn sync-sh-req
     "Run a synchronous shell command, rejecting in the case where a command
     is already in progress. This is mostly for wrapping calls to npm, which
-    only allows a single process at a time."
+    only allows a single process at a time.
+    Returns a response with the new tool list on success."
     [cmdv dir]
     (if (.tryLock lock)
       (try
-        (response/ok
-          (with-sh-dir dir
-            (apply sh cmdv)))
+        (with-sh-dir dir
+          (apply sh cmdv))
+        (tools-list-res)
         (finally
           (.unlock lock)))
       (response/service-unavailable "Shell is already working. Please try again later."))))
