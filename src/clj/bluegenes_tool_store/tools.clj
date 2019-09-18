@@ -115,7 +115,8 @@
   "Call on NPM through the shell to install one or more packages, updating package.json."
   [{{:keys [package packages]} :params}]
   (cond
-    package  (sync-sh-req ["npm" "install" "--save" package] (tools-path :tools))
+    package  (sync-sh-req ["npm" "install" "--save" package]
+                          (tools-path :tools))
     packages (sync-sh-req (into ["npm" "install" "--save"] packages)
                           (tools-path :tools))))
 

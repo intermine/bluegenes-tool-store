@@ -6,7 +6,8 @@
             [ring.middleware.format :refer [wrap-restful-format]]
             [bluegenes-tool-store.tools :as tools]
             [ring.adapter.jetty :refer [run-jetty]]
-            [taoensso.timbre :as timbre :refer [infof errorf]])
+            [taoensso.timbre :as timbre :refer [infof errorf]]
+            [bluegenes-tool-store.package :refer [setup-package-json]])
   (:gen-class))
 
 (defroutes base-routes
@@ -47,6 +48,7 @@
   ;; "PORT" is often the default value for app serving platforms such as Heroku and Dokku
   (let [port (Integer/parseInt (or (:server-port env) (:port env) "5001"))]
     (timbre/set-level! :info) ; Enable Logging
+    (setup-package-json)
     ;; Start the Jetty server by passing in the URL routes defined in `handler`
     (run-jetty handler {:port port :join? false})
     (infof "=== Bluegenes Tool Server server started on port: %s" port)))
