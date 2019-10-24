@@ -2,7 +2,8 @@
   (:require [imcljs.auth :as im-auth]
             [cheshire.core :as cheshire]
             [ring.util.http-response :as response]
-            [config.core :refer [env]]))
+            [config.core :refer [env]]
+            [clojure.string :as string]))
 
 (defn check-priv
   [handler req]
@@ -10,17 +11,31 @@
     (try
       (let [res      (im-auth/who-am-i? service token)
             env-root (:bluegenes-default-service-root env)]
-        (if (and (:superuser res)
-                 ;; Make sure that this BlueGenes instance belongs to the
-                 ;; service which we query for the superuser flag.
-                 (= (:root service) env-root))
-                 ;; A different way to do this would be to replace the root
-                 ;; key in the service to be env-root for the who-am-i?.
+        (cond
+          (and (:superuser res)
+               ;; Make sure that this BlueGenes instance belongs to the
+               ;; service which we query for the superuser flag.
+               (= (:root service) env-root))
+               ;; A different way to do this would be to replace the root
+               ;; key in the service to be env-root for the who-am-i?.
           (handler req)
-          (response/unauthorized {:error
-                                  (if env-root
-                                    (str "You need to be a superuser on '" env-root "' to use this API")
-                                    "The default service root for this BlueGenes instance needs to be defined")})))
+
+          (contains? res :superuser)
+          (response/unauthorized
+            {:error
+             (if env-root
+               (str "You need to be a superuser on '" env-root "' to use this API")
+               "The default service root for this BlueGenes instance needs to be defined")})
+
+          :else
+          ;; The InterMine instance is too old to support returning the
+          ;; superuser flag. We will instead give the user a useful message.
+          (response/not-implemented
+            {:error (str "Managing BlueGenes tools automatically is only supported on InterMine version 5.0.0 or newer. You can still perform the tool operation manually by running '"
+                         (string/join " " (handler req :dry? true))
+                         "' in the directory '"
+                         (:bluegenes-tool-path env)
+                         "'.")})))
       (catch Exception e
         (let [{:keys [status body] :as error} (ex-data e)]
           ;; Parse the body of the bad request sent back from the IM server.

@@ -92,7 +92,7 @@
 
 (defn get-tools-path
   "Respond with tool path."
-  [_req]
+  []
   (response/ok (:bluegenes-tool-path env)))
 
 (let [lock (ReentrantLock.)]
@@ -112,25 +112,35 @@
       (response/service-unavailable {:error "A tool operation is already in progress. Please try again later."}))))
 
 (defn install-package
-  "Call on NPM through the shell to install one or more packages, updating package.json."
-  [{{:keys [package packages]} :params}]
-  (cond
-    package  (sync-sh-req ["npm" "install" "--save" package]
-                          (tools-path :tools))
-    packages (sync-sh-req (into ["npm" "install" "--save"] packages)
-                          (tools-path :tools))))
+  "Call on NPM through the shell to install one or more packages, updating package.json.
+  Pass `:dry? true` to only receive the command which would be run."
+  [{{:keys [package packages]} :params} & {:keys [dry?]}]
+  (let [cmd (cond
+              package  ["npm" "install" "--save" package]
+              packages (into ["npm" "install" "--save"] packages))]
+    (if dry?
+      cmd
+      (sync-sh-req cmd (tools-path :tools)))))
 
 (defn uninstall-package
-  "Call on NPM through the shell to uninstall a package, updating package.json."
-  [{{:keys [package]} :params}]
-  (sync-sh-req ["npm" "uninstall" "--save" package] (tools-path :tools)))
+  "Call on NPM through the shell to uninstall a package, updating package.json.
+  Pass `:dry? true` to only receive the command which would be run."
+  [{{:keys [package]} :params} & {:keys [dry?]}]
+  (let [cmd ["npm" "uninstall" "--save" package]]
+    (if dry?
+      cmd
+      (sync-sh-req cmd (tools-path :tools)))))
 
 (defn update-packages
   "Call on NPM through the shell to update to the latest versions of the
   specified packages, which is passed as a vector of strings. Using
   `npm update` only updates the minor and patch versions, so we need to use
   `npm install` and specify the package names explicitly with `@latest` added
-  to their name."
-  [{{:keys [packages]} :params}]
-  (let [to-update (map #(str % "@latest") packages)]
-    (sync-sh-req (into ["npm" "install" "--save"] to-update) (tools-path :tools))))
+  to their name.
+  Pass `:dry? true` to only receive the command which would be run."
+  [{{:keys [packages]} :params} & {:keys [dry?]}]
+  (let [to-update (map #(str % "@latest") packages)
+        cmd       (into ["npm" "install" "--save"] to-update)]
+    (if dry?
+      cmd
+      (sync-sh-req cmd (tools-path :tools)))))

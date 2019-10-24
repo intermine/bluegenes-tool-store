@@ -20,7 +20,7 @@
   (context "/api" []
            (context "/tools" []
                     (GET "/all" [] (tools/get-all-tools))
-                    (GET "/path"       req (check-priv tools/get-tools-path    req))
+                    (GET "/path" [] tools/get-tools-path)
                     (POST "/install"   req (check-priv tools/install-package   req))
                     (POST "/uninstall" req (check-priv tools/uninstall-package req))
                     (POST "/update"    req (check-priv tools/update-packages   req)))))
