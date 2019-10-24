@@ -7,10 +7,11 @@
             [bluegenes-tool-store.tools :as tools]
             [ring.adapter.jetty :refer [run-jetty]]
             [taoensso.timbre :as timbre :refer [infof errorf]]
-            [bluegenes-tool-store.package :refer [setup-package-json]])
+            [bluegenes-tool-store.package :refer [setup-package-json]]
+            [bluegenes-tool-store.auth :refer [check-priv]])
   (:gen-class))
 
-(defroutes base-routes
+(defroutes routes
   ;; serve all tool files in bluegenes/tools automatically.
   ;; they can't go in the resource folder b/c then they get jarred
   ;; when running uberjar or clojar targets,
@@ -18,20 +19,11 @@
   (files "/tools" {:root (:bluegenes-tool-path env), :allow-symlinks? true})
   (context "/api" []
            (context "/tools" []
-                    (GET "/all" [] (tools/get-all-tools)))))
-
-(defroutes unsafe-routes
-  (context "/api" []
-           (context "/tools" []
-                    (GET "/path" [] (tools/get-tools-path))
-                    (POST "/install" req (tools/install-package req))
-                    (POST "/uninstall" req (tools/uninstall-package req))
-                    (POST "/update" req (tools/update-packages req)))))
-
-(def routes
-  (if (true? (:enable-unsafe-routes env))
-    (compojure.core/routes base-routes unsafe-routes)
-    base-routes))
+                    (GET "/all" [] (tools/get-all-tools))
+                    (GET "/path"       req (check-priv tools/get-tools-path    req))
+                    (POST "/install"   req (check-priv tools/install-package   req))
+                    (POST "/uninstall" req (check-priv tools/uninstall-package req))
+                    (POST "/update"    req (check-priv tools/update-packages   req)))))
 
 (def handler (-> #'routes
                  ; Watch changes to the .clj and hot reload them

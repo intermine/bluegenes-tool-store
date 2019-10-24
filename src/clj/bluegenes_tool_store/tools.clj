@@ -92,7 +92,7 @@
 
 (defn get-tools-path
   "Respond with tool path."
-  []
+  [_req]
   (response/ok (:bluegenes-tool-path env)))
 
 (let [lock (ReentrantLock.)]
@@ -109,7 +109,7 @@
         (tools-list-res)
         (finally
           (.unlock lock)))
-      (response/service-unavailable "Shell is already working. Please try again later."))))
+      (response/service-unavailable {:error "A tool operation is already in progress. Please try again later."}))))
 
 (defn install-package
   "Call on NPM through the shell to install one or more packages, updating package.json."
