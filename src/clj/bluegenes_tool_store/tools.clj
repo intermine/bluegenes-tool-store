@@ -93,7 +93,7 @@
 (defn get-tools-path
   "Respond with tool path."
   []
-  (response/ok (:bluegenes-tool-path env)))
+  (response/ok {:path (:bluegenes-tool-path env)}))
 
 (let [lock (ReentrantLock.)]
   (defn sync-sh-req
