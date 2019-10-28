@@ -7,7 +7,9 @@
 (defn get-all-npm-tools
   "Send an HTTP request to the NPMJS API to get a list of bluegenes tools."
   []
-  (-> (client/get "https://api.npms.io/v2/search?q=keywords:bluegenes-intermine-tool")
+  (-> (client/get (str "https://api.npms.io/v2/search"
+                       "?q=scope:intermine"
+                       "+keywords:bluegenes-intermine-tool"))
       :body
       (cheshire/parse-string true)
       :results))
