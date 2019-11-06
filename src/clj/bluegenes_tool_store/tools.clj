@@ -3,7 +3,7 @@
             [config.core :refer [env]]
             [ring.util.http-response :as response]
             [clojure.java.io :as io]
-            [taoensso.timbre :refer [infof error errorf warnf]]
+            [taoensso.timbre :refer [infof errorf warnf]]
             [bluegenes-tool-store.package :refer [install-package uninstall-package]]
             [clojure.edn :as edn]
             [clj-http.client :as client])
@@ -27,8 +27,9 @@
         :body
         (cheshire/parse-string true)
         :results)
-    (catch Exception _
-      (error "Failed to acquire list of bluegenes-intermine-tool from `api.npms.io`."))))
+    (catch Exception e
+      (errorf "Failed to acquire list of bluegenes-intermine-tool from `api.npms.io`: %s"
+              (.getMessage e)))))
 
 (declare package-operation)
 (defn install-all-npm-tools

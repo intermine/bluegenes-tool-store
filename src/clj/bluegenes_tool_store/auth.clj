@@ -5,6 +5,9 @@
             [config.core :refer [env]]))
 
 (defn check-priv
+  "Makes a request to the InterMine server to verify that the user in `req` is
+  superuser on the mine which this BlueGenes instance belongs to. Only if this
+  is true, will the `handler` function be run."
   [handler req]
   (let [{:keys [token] :as service} (get-in req [:params :service])]
     (try
