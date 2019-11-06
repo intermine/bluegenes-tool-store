@@ -7,7 +7,6 @@
             [bluegenes-tool-store.tools :as tools]
             [ring.adapter.jetty :refer [run-jetty]]
             [taoensso.timbre :as timbre :refer [infof errorf]]
-            [bluegenes-tool-store.package :refer [setup-package-json]]
             [bluegenes-tool-store.auth :refer [check-priv]])
   (:gen-class))
 
@@ -21,9 +20,9 @@
            (context "/tools" []
                     (GET "/all" [] (tools/get-all-tools))
                     (GET "/path" [] (tools/get-tools-path))
-                    (POST "/install"   req (check-priv tools/install-package   req))
-                    (POST "/uninstall" req (check-priv tools/uninstall-package req))
-                    (POST "/update"    req (check-priv tools/update-packages   req)))))
+                    (POST "/install"   req (check-priv tools/install-tool req))
+                    (POST "/uninstall" req (check-priv tools/uninstall-tool req))
+                    (POST "/update"    req (check-priv tools/update-tools req)))))
 
 (def handler (-> #'routes
                  ; Watch changes to the .clj and hot reload them
@@ -40,7 +39,7 @@
   ;; "PORT" is often the default value for app serving platforms such as Heroku and Dokku
   (let [port (Integer/parseInt (or (:server-port env) (:port env) "5001"))]
     (timbre/set-level! :info) ; Enable Logging
-    (setup-package-json)
+    (tools/initialise-tools)
     ;; Start the Jetty server by passing in the URL routes defined in `handler`
     (run-jetty handler {:port port :join? false})
     (infof "=== Bluegenes Tool Server server started on port: %s" port)))

@@ -2,8 +2,7 @@
   (:require [imcljs.auth :as im-auth]
             [cheshire.core :as cheshire]
             [ring.util.http-response :as response]
-            [config.core :refer [env]]
-            [clojure.string :as string]))
+            [config.core :refer [env]]))
 
 (defn check-priv
   [handler req]
@@ -31,11 +30,7 @@
           ;; The InterMine instance is too old to support returning the
           ;; superuser flag. We will instead give the user a useful message.
           (response/not-implemented
-            {:error (str "Managing BlueGenes tools automatically is only supported on InterMine version 5.0.0 or newer. You can still perform the tool operation manually by running '"
-                         (string/join " " (handler req :dry? true))
-                         "' in the directory '"
-                         (:bluegenes-tool-path env)
-                         "'.")})))
+            {:error "Managing BlueGenes tools automatically is only supported on InterMine version 5.0.0 or newer."})))
       (catch Exception e
         (let [{:keys [status body] :as error} (ex-data e)]
           ;; Parse the body of the bad request sent back from the IM server.

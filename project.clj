@@ -22,8 +22,10 @@
                  [com.taoensso/timbre "4.10.0"]
                  [com.fzakaria/slf4j-timbre "0.3.14"]
 
+                 [org.apache.commons/commons-compress "1.19"]
+
                  ; Intermine Assets
-                 [org.intermine/imcljs "1.0.1"]]
+                 [org.intermine/imcljs "1.0.2"]]
 
   :deploy-repositories {"clojars" {:sign-releases false}}
   :plugins [[lein-codox "0.10.5"]
