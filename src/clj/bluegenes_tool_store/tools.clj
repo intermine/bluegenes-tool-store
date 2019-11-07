@@ -11,7 +11,7 @@
 
 (def tools-path
   "Path to the tools directory containing the config file and packages."
-  (io/file (:bluegenes-tool-path env)))
+  (io/file (or (:bluegenes-tool-path env) "./tools")))
 
 (def tools-config
   "Path to the tools config file."

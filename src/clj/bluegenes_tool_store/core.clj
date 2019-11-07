@@ -15,7 +15,7 @@
   ;; they can't go in the resource folder b/c then they get jarred
   ;; when running uberjar or clojar targets,
   ;; and make the jars about a million megabytes too big.
-  (files "/tools" {:root (:bluegenes-tool-path env), :allow-symlinks? true})
+  (files "/tools" {:root (.getPath tools/tools-path), :allow-symlinks? true})
   (context "/api" []
            (context "/tools" []
                     (GET "/all" [] (tools/get-all-tools))

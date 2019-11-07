@@ -62,8 +62,8 @@
                     client/get
                     :body
                     (cheshire/parse-string true))
-            latest-tag (keyword (get-in res [:dist-tags :latest]))]
-        {:uri (get-in res [:versions latest-tag :dist :tarball])
+            latest-tag (get-in res [:dist-tags :latest])]
+        {:uri (get-in res [:versions (keyword latest-tag) :dist :tarball])
          :name package-name
          :version latest-tag})
       (catch Exception e
