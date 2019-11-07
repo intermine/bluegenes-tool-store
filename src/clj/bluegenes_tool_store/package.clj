@@ -8,6 +8,19 @@
   (:import [java.util.zip GZIPInputStream]
            [org.apache.commons.compress.archivers.tar TarArchiveInputStream TarArchiveEntry]))
 
+(defn- delete-dir
+  "Safely delete a `package` directory and its contents, if it exists and is a
+  child of the `target` directory."
+  [target package]
+  (when (and (.exists package)
+             ;; Verify that package is a child of the target directory.
+             (let [p (.getCanonicalPath package)
+                   t (.getCanonicalPath target)]
+               (and (string/starts-with? p t) (not= p t))))
+    ;; Recursively delete contents of package directory.
+    (doseq [file (reverse (file-seq package))]
+      (io/delete-file file))))
+
 ;; Archive streaming code taken from:
 ;; https://github.com/Raynes/fs/blob/master/src/me/raynes/fs/compression.clj
 
@@ -24,8 +37,7 @@
   [{:keys [uri name] :as package-data} target]
   (let [package-dir (io/file target name)]
     (try
-      (when (.exists package-dir)
-        (.delete package-dir))
+      (delete-dir target package-dir)
       (with-open [in (TarArchiveInputStream. (GZIPInputStream. (io/input-stream uri)))]
         (doseq [^TarArchiveEntry entry (tar-entries in)
                  :when (not (.isDirectory entry))
@@ -34,10 +46,11 @@
           (io/make-parents output-file)
           (io/copy in output-file)))
       package-data
-      (catch Exception _
-        (let [msg (format "Failed to download NPM archive `%s`. This is likely due to a network error." uri)]
-          (error msg)
-          (throw (ex-info msg {:uri uri :name name :target target})))))))
+      (catch Exception e
+        (error e)
+        (throw
+          (ex-info (format "Failed to download NPM archive `%s`. This is likely due to a network error." uri)
+                   {:uri uri :name name :target target}))))))
 
 (defn- get-package-tgz
   "Uses the NPMJS Registry API to get a link to the tarball of the latest
@@ -53,10 +66,11 @@
         {:uri (get-in res [:versions latest-tag :dist :tarball])
          :name package-name
          :version latest-tag})
-      (catch Exception _
-        (let [msg (format "Failed to GET `%s`. This is likely due to a network error." registry-url)]
-          (error msg)
-          (throw (ex-info msg {:package-name package-name :uri registry-url})))))))
+      (catch Exception e
+        (error e)
+        (throw
+          (ex-info (format "Failed to GET `%s`. This is likely due to a network error." registry-url)
+                   {:package-name package-name :uri registry-url}))))))
 
 (defn- add-package-to-config
   "Adds the package name and version to the tool `config`."
@@ -94,5 +108,5 @@
   `bluegenes-tool-store.tools/package-operation` instead."
   [tools-config target-dir package-name]
   (let [package-dir (io/file target-dir package-name)]
-    (.delete package-dir)
+    (delete-dir target-dir package-dir)
     (remove-package-from-config package-name tools-config)))

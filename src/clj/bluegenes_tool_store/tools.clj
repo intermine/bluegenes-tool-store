@@ -3,8 +3,8 @@
             [config.core :refer [env]]
             [ring.util.http-response :as response]
             [clojure.java.io :as io]
-            [taoensso.timbre :refer [infof errorf warnf]]
-            [bluegenes-tool-store.package :refer [install-package uninstall-package]]
+            [taoensso.timbre :refer [error infof errorf warnf]]
+            [bluegenes-tool-store.package :as pkg]
             [clojure.edn :as edn]
             [clj-http.client :as client])
   (:import [java.util.concurrent.locks ReentrantLock]))
@@ -104,9 +104,9 @@
     {:tools (remove nil? ; Faulty tools will return nil.
                     (map parse-tool (installed-tools-list)))}))
 
-(let [lock      (ReentrantLock.)
-      install   (partial install-package tools-config tools-path)
-      uninstall (partial uninstall-package tools-config tools-path)]
+(let [lock       (ReentrantLock.)
+      install    (partial pkg/install-package   tools-config tools-path)
+      uninstall  (partial pkg/uninstall-package tools-config tools-path)]
   (defn package-operation
     "Perform a package install or uninstall `operation` on `package+` which can
     be a single package name or a collection of multiple. Returns an error
@@ -126,6 +126,7 @@
                        (uninstall package+)))
         (tools-list-res)
         (catch Exception e
+          (error e)
           (response/bad-gateway {:error (.getMessage e)}))
         (finally
           (.unlock lock)))
