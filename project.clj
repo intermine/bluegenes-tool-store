@@ -35,7 +35,8 @@
 
   :aliases {"dev" ["do" "clean" ["pdo" ["run"]]]
             "prod" ["do" "clean" ["pdo" ["run"]]]
-            "format" ["cljfmt" "fix"]}
+            "format" ["cljfmt" "fix"]
+            "tools" ["run" "-m" "bluegenes-tool-store.tools"]}
 
   :min-lein-version "2.8.1"
 

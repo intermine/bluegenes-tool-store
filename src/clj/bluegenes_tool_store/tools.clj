@@ -3,7 +3,7 @@
             [config.core :refer [env]]
             [ring.util.http-response :as response]
             [clojure.java.io :as io]
-            [taoensso.timbre :refer [error infof errorf warnf]]
+            [taoensso.timbre :as timbre :refer [error infof errorf warnf]]
             [bluegenes-tool-store.package :as pkg]
             [clojure.edn :as edn]
             [clj-http.client :as client])
@@ -46,6 +46,16 @@
     (spit tools-config (pr-str {:tools {}}))
     (future (install-all-npm-tools))
     nil))
+
+(defn force-initialise-tools
+  "Forcibly initialises the tool config, installing the latest version of all
+  official tools regardless of what is currently installed."
+  []
+  (when-not (.exists tools-config)
+    (io/make-parents tools-config)
+    (spit tools-config (pr-str {:tools {}})))
+  (future (install-all-npm-tools))
+  nil)
 
 (defn installed-tools-list
   "Return a list of the installed tools in the tools config file."
@@ -141,7 +151,9 @@
       (f req)
       (response/bad-request {:error "Please include your package name(s) in the package or packages parameter."}))))
 
-;; Following is used for the Tool API routes.
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tool API Endpoints ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn get-all-tools
   "Return list of tools as a REST response to our GET."
@@ -170,3 +182,25 @@
   (verify-package-params
     (fn [{{:keys [package packages]} :params}]
       (package-operation :install (or package packages)))))
+
+;;;;;;;;;;;;;;;
+;; CLI Usage ;;
+;;;;;;;;;;;;;;;
+
+(defn -main
+  "This main function is for managing tools from the command line via the
+  leiningen `lein tools` alias."
+  [cmd & args]
+  (timbre/set-level! :info)
+  (case cmd
+    "init"      (force-initialise-tools)
+    "install"   (package-operation :install args)
+    "uninstall" (package-operation :uninstall args)
+    (println "Install BlueGenes tools from the command line.
+
+USAGE: lein tools [ARGS...]
+
+ARGS:
+init                            - Initialise tools config and install all official tools
+install package [package ...]   - Install one or more tools
+uninstall package [package ...] - Uninstall one or more tools")))
