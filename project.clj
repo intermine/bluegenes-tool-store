@@ -1,4 +1,4 @@
-(defproject org.intermine/bluegenes-tool-store "0.1.0"
+(defproject org.intermine/bluegenes-tool-store "0.2.0-ALPHA"
   :licence "LGPL-2.1-only"
   :description "Microservice which serves tools for use with BlueGene's Tool API"
   :url "http://www.intermine.org"
@@ -20,7 +20,12 @@
 
                  ; Logging
                  [com.taoensso/timbre "4.10.0"]
-                 [com.fzakaria/slf4j-timbre "0.3.14"]]
+                 [com.fzakaria/slf4j-timbre "0.3.14"]
+
+                 [org.apache.commons/commons-compress "1.19"]
+
+                 ; Intermine Assets
+                 [org.intermine/imcljs "1.0.2"]]
 
   :deploy-repositories {"clojars" {:sign-releases false}}
   :plugins [[lein-codox "0.10.5"]
@@ -30,7 +35,8 @@
 
   :aliases {"dev" ["do" "clean" ["pdo" ["run"]]]
             "prod" ["do" "clean" ["pdo" ["run"]]]
-            "format" ["cljfmt" "fix"]}
+            "format" ["cljfmt" "fix"]
+            "tools" ["run" "-m" "bluegenes-tool-store.tools"]}
 
   :min-lein-version "2.8.1"
 

@@ -1,3 +1,10 @@
 node_modules/
 /target/
 /pom.xml
+/tools/
+/config/dev/
+/config/prod/
+/.lein-failures
+/.lein-repl-history
+/.lsp/
+/.nrepl-port
