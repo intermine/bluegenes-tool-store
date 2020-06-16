@@ -33,7 +33,7 @@
           ;; The InterMine instance is too old to support returning the
           ;; superuser flag. We will instead give the user a useful message.
           (response/not-implemented
-            {:error "Managing BlueGenes tools automatically is only supported on InterMine version 5.0.0 or newer."})))
+            {:error "Managing BlueGenes tools automatically is only supported on InterMine version 4.2.0 or newer."})))
       (catch Exception e
         (let [{:keys [status body] :as error} (ex-data e)]
           ;; Parse the body of the bad request sent back from the IM server.
