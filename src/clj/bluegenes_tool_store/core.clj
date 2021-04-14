@@ -3,7 +3,7 @@
             [compojure.route :refer [resources files]]
             [config.core :refer [env]]
             [ring.middleware.reload :refer [wrap-reload]]
-            [ring.middleware.format :refer [wrap-restful-format]]
+            [muuntaja.middleware :refer [wrap-format wrap-params]]
             [bluegenes-tool-store.tools :as tools]
             [ring.adapter.jetty :refer [run-jetty]]
             [taoensso.timbre :as timbre :refer [infof errorf]]
@@ -25,11 +25,14 @@
                     (POST "/update"    req (check-priv tools/update-tools req)))))
 
 (def handler (-> #'routes
-                 ; Watch changes to the .clj and hot reload them
-                 wrap-reload
-                 ; Accept and parse request parameters in various formats
-                 (wrap-restful-format :formats
-                                      [:json :json-kw :transit-msgpack :transit-json])))
+                 ;; Watch changes to the .clj and hot reload them
+                 (cond-> (:development env) (wrap-reload {:dirs ["src/clj"]}))
+                 ;; Merges request :body-params into :params
+                 (wrap-params)
+                 ;; Decodes requests and encodes responses based on headers.
+                 ;; Primarily to take transit+json body from frontend and put
+                 ;; into :body-params.
+                 (wrap-format)))
 
 (defn -main
   "Start the BlueGenes Tool Store server.

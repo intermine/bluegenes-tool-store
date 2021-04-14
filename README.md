@@ -12,7 +12,7 @@
 
 ## Deploying to Clojars
 
-    lein with-profile +uberjar deploy clojars
+    lein deploy
 
 ## Initialising tools
 
@@ -48,5 +48,5 @@ If you use OpenJDK 9, you will need to add the `java9` profile to your leiningen
 
 ## System requirements
 
-* OpenJDK, version 8 or 9 (only until we make our software compatible with OpenJDK 11)
+* Java 8-11 (we recommend [OpenJDK](https://adoptopenjdk.net/))
 * Latest [Leiningen](https://leiningen.org/)
