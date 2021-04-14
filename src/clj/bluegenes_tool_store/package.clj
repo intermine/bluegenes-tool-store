@@ -72,6 +72,15 @@
           (ex-info (format "Failed to GET `%s`. This is likely due to a network error." registry-url)
                    {:package-name package-name :uri registry-url}))))))
 
+(defn- pp-str
+  "Naive implementation of a pretty printer.
+  Needs to be adapted if you change the tool config."
+  [tools]
+  ;; Yes, it's modifying data with regex. We're just replacing whitespace with
+  ;; more whitespace, so it can't break anything. Indentation is hardcoded so
+  ;; make sure you update this if you change the structure of the tools file.
+  (string/replace (pr-str tools) ", " "\n         "))
+
 (defn- add-package-to-config
   "Adds the package name and version to the tool `config`."
   [{:keys [name version]} config]
@@ -79,7 +88,7 @@
                  (catch Exception _
                    (warnf "Tool config %s is missing or invalid. It will be recreated with %s installed." config name)))
         tools' (assoc-in tools [:tools name] version)]
-    (spit config tools')
+    (spit config (pp-str tools'))
     tools'))
 
 (defn- remove-package-from-config
@@ -89,7 +98,7 @@
                  (catch Exception _
                    (warnf "Tool config %s is missing or invalid. An empty one will be created." config)))
         tools' (update tools :tools dissoc package-name)]
-    (spit config tools')
+    (spit config (pp-str tools'))
     tools'))
 
 (defn install-package
