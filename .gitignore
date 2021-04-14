@@ -8,3 +8,5 @@ node_modules/
 /.lein-repl-history
 /.lsp/
 /.nrepl-port
+/.clj-kondo/
+/.lein-env
