@@ -1,4 +1,4 @@
-(defproject org.intermine/bluegenes-tool-store "0.2.0"
+(defproject org.intermine/bluegenes-tool-store "0.2.1"
   :licence "LGPL-2.1-only"
   :description "Microservice which serves tools for use with BlueGene's Tool API"
   :url "http://www.intermine.org"
