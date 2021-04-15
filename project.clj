@@ -41,7 +41,10 @@
             "prod" ["do" "clean,"
                     ["with-profile" "prod" "run"]]
             "uberjar" ["with-profile" "prod" "uberjar"]
-            "deploy" ["with-profile" "+uberjar" "deploy" "clojars"]
+            "install" ["do" "clean,"
+                       ["with-profile" "noaot" "install"]]
+            "deploy" ["do" "clean,"
+                      ["with-profile" "noaot" "deploy" "clojars"]]
             "format" ["cljfmt" "fix"]
             "tools" ["run" "-m" "bluegenes-tool-store.tools"]}
 
@@ -57,7 +60,10 @@
              :uberjar {:resource-paths ^:replace ["config/defaults" "resources"]
                        :prep-tasks ["clean" "compile"]
                        :aot :all}
-             :java9 { :jvm-opts ["--add-modules" "java.xml.bind"]}}
+             :noaot {:resource-paths ^:replace ["config/defaults" "resources"]
+                     ;; Stop install/deploy from AOT compiling.
+                     :prep-tasks []}
+             :java9 {:jvm-opts ["--add-modules" "java.xml.bind"]}}
 
   :main bluegenes-tool-store.core
 
